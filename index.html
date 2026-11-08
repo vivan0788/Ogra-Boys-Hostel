@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ogra Boys Hostel</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-[#090d16] text-slate-100 flex flex-col min-h-screen">
+
+  <!-- Splash Screen -->
+  <div id="splash-screen">
+    <div class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center pulse-emblem mb-4 shadow-lg shadow-blue-500/20">
+      <i class="ph-bold ph-shield-check text-4xl text-white"></i>
+    </div>
+    <h1 class="text-xl font-bold tracking-tight text-white">OGRA BOYS HOSTEL</h1>
+    <p class="text-xs text-slate-400 mt-1">Management Portal</p>
+  </div>
+
+  <!-- Header -->
+  <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-[#090d16]/90 backdrop-blur sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+        <i class="ph-bold ph-shield text-xl"></i>
+      </div>
+      <div>
+        <h2 class="text-sm font-bold tracking-wide">OGRA BOYS HOSTEL</h2>
+        <span id="role-tag" class="text-[10px] uppercase font-semibold text-slate-400">Secure Gateway</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="logout-btn" class="hidden text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-medium">
+        <i class="ph-bold ph-sign-out"></i> Logout
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-xl mx-auto w-full p-4 pb-20">
+
+    <!-- Screen 1: Auth Gateway (Student/Warden Login & Registration) -->
+    <div id="auth-screen" class="space-y-6">
+      <div class="flex bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+        <button onclick="switchAuthTab('student-login')" id="tab-btn-student-login" class="flex-1 py-2 rounded-lg bg-blue-600 text-white transition">Student</button>
+        <button onclick="switchAuthTab('warden-login')" id="tab-btn-warden-login" class="flex-1 py-2 rounded-lg text-slate-400 transition">Warden</button>
+        <button onclick="switchAuthTab('register')" id="tab-btn-register" class="flex-1 py-2 rounded-lg text-slate-400 transition">Register</button>
+      </div>
+
+      <!-- Student Login Form -->
+      <form id="student-login-form" class="glass-card p-6 space-y-4">
+        <h3 class="text-base font-bold text-white mb-2">Student Access</h3>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Roll Number</label>
+          <input type="text" id="stud-roll" required class="form-input" placeholder="e.g. 202601">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Password</label>
+          <input type="password" id="stud-pass" required class="form-input" placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-primary">Sign In as Student</button>
+      </form>
+
+      <!-- Warden Login Form -->
+      <form id="warden-login-form" class="glass-card p-6 space-y-4 hidden">
+        <h3 class="text-base font-bold text-white mb-2">Warden Portal</h3>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Username</label>
+          <input type="text" id="warden-user" required class="form-input" placeholder="Username">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Master PIN (Authorization)</label>
+          <input type="password" id="warden-pin" required class="form-input" placeholder="Enter Authorization PIN">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Password</label>
+          <input type="password" id="warden-pass" required class="form-input" placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-primary bg-amber-600 hover:bg-amber-500">Sign In as Warden</button>
+      </form>
+
+      <!-- Student Registration Form -->
+      <form id="register-form" class="glass-card p-6 space-y-4 hidden">
+        <h3 class="text-base font-bold text-white mb-2">New Student Admission</h3>
+        <p class="text-xs text-slate-400">Account requires Warden verification before activation.</p>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Full Name</label>
+          <input type="text" id="reg-name" required class="form-input" placeholder="Full Name">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Roll Number</label>
+            <input type="text" id="reg-roll" required class="form-input" placeholder="Roll No">
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">Room No</label>
+            <input type="text" id="reg-room" required class="form-input" placeholder="e.g. 104">
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Hostel Floor</label>
+          <select id="reg-floor" class="form-input">
+            <option value="Ground-Floor">Ground-Floor</option>
+            <option value="1st-Floor">1st-Floor</option>
+            <option value="2nd-Floor">2nd-Floor</option>
+            <option value="3rd-Floor">3rd-Floor</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Phone Number</label>
+          <input type="tel" id="reg-phone" required class="form-input" placeholder="Phone Number">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Create Password</label>
+          <input type="password" id="reg-pass" required class="form-input" placeholder="Password">
+        </div>
+        <button type="submit" class="btn-primary">Submit for Approval</button>
+      </form>
+    </div>
+
+    <!-- Screen 2: Student Dashboard -->
+    <div id="student-dashboard" class="space-y-4 hidden">
+      <div class="glass-card p-5 border-blue-500/20 bg-gradient-to-br from-blue-950/40 to-slate-900/60">
+        <h2 id="stud-disp-name" class="text-lg font-bold text-white">Student Name</h2>
+        <p id="stud-disp-meta" class="text-xs text-slate-400">Roll: --- • Room: ---</p>
+      </div>
+
+      <!-- Notices Section -->
+      <div class="glass-card p-4 space-y-3">
+        <h3 class="text-xs uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
+          <i class="ph-bold ph-megaphone-simple text-blue-400"></i> Official Notices
+        </h3>
+        <div id="student-notices" class="space-y-2 text-sm"></div>
+      </div>
+
+      <!-- Complaints Form -->
+      <div class="glass-card p-4 space-y-3">
+        <h3 class="text-xs uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
+          <i class="ph-bold ph-wrench text-amber-400"></i> File a Complaint
+        </h3>
+        <input type="text" id="comp-title" class="form-input text-sm" placeholder="Issue Title (e.g., Fan not working)">
+        <textarea id="comp-desc" class="form-input text-sm h-20 resize-none" placeholder="Provide details..."></textarea>
+        <button onclick="submitComplaint()" class="btn-primary py-2 text-xs">Submit Grievance</button>
+        <div id="student-complaint-list" class="space-y-2 pt-2"></div>
+      </div>
+    </div>
+
+    <!-- Screen 3: Warden Dashboard -->
+    <div id="warden-dashboard" class="space-y-5 hidden">
+      <!-- Approvals Section -->
+      <div class="glass-card p-4 space-y-3">
+        <h3 class="text-xs uppercase font-bold tracking-wider text-amber-400 flex items-center gap-1.5">
+          <i class="ph-bold ph-user-circle-plus"></i> Pending Approvals
+        </h3>
+        <div id="warden-approvals-list" class="space-y-2"></div>
+      </div>
+
+      <!-- Post Notice -->
+      <div class="glass-card p-4 space-y-3">
+        <h3 class="text-xs uppercase font-bold tracking-wider text-blue-400 flex items-center gap-1.5">
+          <i class="ph-bold ph-paper-plane-tilt"></i> Broadcast Announcement
+        </h3>
+        <input type="text" id="notice-input" class="form-input text-sm" placeholder="Write urgent hostel announcement...">
+        <button onclick="postNotice()" class="btn-primary py-2 text-xs">Post Announcement</button>
+      </div>
+
+      <!-- Grievance Management -->
+      <div class="glass-card p-4 space-y-3">
+        <h3 class="text-xs uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
+          <i class="ph-bold ph-list-checks"></i> Student Complaints
+        </h3>
+        <div id="warden-complaint-list" class="space-y-2 text-sm"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Notification Alert -->
+  <div id="toast"></div>
+
+  <!-- JavaScript Modules -->
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+            </html>
+            
