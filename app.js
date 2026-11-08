@@ -195,27 +195,20 @@ function renderApp() {
     liveInd.title = isLiveFirebase ? 'Hostel Cloud Synchronized' : 'Connecting to Cloud...';
   }
 
-  const wardenAccountExists = store.users.some(u => u.role === 'warden');
-
+  // 1. Unauthenticated Gateway (Default: Seedha Student/Warden Login dikhega)
   if (!currentUser) {
     nav.classList.add('hidden');
-
-    if (!wardenAccountExists) {
-      authMode = 'warden_setup';
-      headerSubtitle.innerText = 'Initial Warden Setup';
-      headerActions.innerHTML = ``;
-    } else {
-      headerSubtitle.innerText = 'Residence Portal Gateway';
-      headerActions.innerHTML = `
-        <button onclick="window.switchAuth('warden_login')" class="px-2.5 py-1.5 rounded-xl ${authMode === 'warden_login' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} text-xs font-bold flex items-center gap-1 transition">
-          <i class="ph-bold ph-shield-check"></i> Warden Portal
-        </button>
-      `;
-    }
+    headerSubtitle.innerText = 'Residence Portal Gateway';
+    headerActions.innerHTML = `
+      <button onclick="window.switchAuth('warden_login')" class="px-2.5 py-1.5 rounded-xl ${authMode === 'warden_login' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} text-xs font-bold flex items-center gap-1 transition">
+        <i class="ph-bold ph-shield-check"></i> Warden Portal
+      </button>
+    `;
     renderAuthGateway(main);
     return;
   }
 
+  // 2. Warden Authenticated
   if (currentUser.role === 'warden') {
     nav.classList.remove('hidden');
     headerSubtitle.innerText = `Chief Warden Desk • ${currentUser.name}`;
@@ -229,6 +222,7 @@ function renderApp() {
     return;
   }
 
+  // 3. Student Authenticated
   if (currentUser.role === 'student') {
     nav.classList.remove('hidden');
     headerSubtitle.innerText = `Room ${currentUser.room} • ${currentUser.block}`;
@@ -241,11 +235,9 @@ function renderApp() {
     renderStudentContent(main);
   }
 }
-
 function renderAuthGateway(container) {
-  const wardenAccountExists = store.users.some(u => u.role === 'warden');
-
-  if (!wardenAccountExists || authMode === 'warden_setup') {
+  // Sirf tabhi setup screen dikhayega jab specifically warden setup par switch kiya jaye
+  if (authMode === 'warden_setup') {
     container.innerHTML = `
       <div class="py-2 space-y-4">
         <div class="bg-gradient-to-br from-indigo-700 via-brand-600 to-indigo-900 rounded-3xl p-6 text-white shadow-xl">
@@ -284,6 +276,9 @@ function renderAuthGateway(container) {
 
             <button type="submit" class="w-full mt-2 py-3.5 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl font-bold text-sm shadow-md shadow-brand-500/25 active:scale-95 transition">
               Verify Secret PIN & Create Warden Account
+            </button>
+            <button type="button" onclick="window.switchAuth('warden_login')" class="w-full py-2.5 text-xs text-slate-500 font-bold hover:text-slate-800 transition">
+              ← Back to Warden Login
             </button>
           </form>
         </div>
@@ -332,6 +327,7 @@ function renderAuthGateway(container) {
     return;
   }
 
+  // DEFAULT VIEW: Student Login / Warden Login / New Register (Image 2)
   container.innerHTML = `
     <div class="py-2 space-y-4">
       <div class="bg-gradient-to-br ${authMode === 'warden_login' ? 'from-slate-900 via-indigo-950 to-slate-800' : 'from-brand-600 via-indigo-600 to-indigo-800'} rounded-3xl p-5 text-white shadow-xl transition-all">
@@ -381,6 +377,12 @@ function renderAuthGateway(container) {
               <i class="ph-bold ph-sign-in text-base text-amber-400"></i>
               Sign In as Warden
             </button>
+
+            <div class="mt-3 text-center">
+              <button type="button" onclick="window.switchAuth('warden_setup')" class="text-[11px] text-indigo-600 font-bold hover:underline">
+                First Time Warden? Create Warden Account →
+              </button>
+            </div>
           </form>
         ` : authMode === 'student_login' ? `
           <form onsubmit="window.handleAuthLogin(event, 'student')" class="space-y-3.5">
@@ -469,121 +471,9 @@ function renderAuthGateway(container) {
   `;
 }
 
-window.switchAuth = (mode) => {
-  authMode = mode;
-  renderApp();
-};
+        
 
-window.handleWardenSetup = async (e) => {
-  e.preventDefault();
-  const enteredPin = document.getElementById('w-setup-pin').value.trim();
 
-  if (enteredPin !== SECRET_WARDEN_AUTH_PIN) {
-    showToast('Access Denied: Invalid Master Secret Authorization PIN!', 'error');
-    return;
-  }
-
-  const name = document.getElementById('w-setup-name').value.trim();
-  const phone = document.getElementById('w-setup-phone').value.trim();
-  const username = document.getElementById('w-setup-user').value.trim().toLowerCase();
-  const password = document.getElementById('w-setup-pass').value.trim();
-
-  const wardenObj = {
-    id: 'usr_warden_' + Date.now(),
-    role: 'warden',
-    name,
-    rollNo: 'STAFF-WARDEN',
-    room: 'Warden Office',
-    block: 'Administration',
-    phone,
-    username,
-    password,
-    status: 'approved',
-    createdAt: new Date().toISOString()
-  };
-
-  await syncSave('users', wardenObj.id, wardenObj);
-  showToast('Warden Master account authorized & saved!', 'success');
-  loginUser(wardenObj);
-};
-
-window.handleAuthLogin = (e, expectedRole) => {
-  e.preventDefault();
-  const uVal = document.getElementById('auth-u').value.trim().toLowerCase();
-  const pVal = document.getElementById('auth-p').value.trim();
-
-  const matchedUser = store.users.find(u => 
-    (u.username.toLowerCase() === uVal || u.phone === uVal || (u.rollNo && u.rollNo.toLowerCase() === uVal)) &&
-    u.password === pVal
-  );
-
-  if (!matchedUser) {
-    showToast('Invalid credentials! Please verify username and password.', 'error');
-    return;
-  }
-
-  if (expectedRole === 'warden' && matchedUser.role !== 'warden') {
-    showToast('Access Restricted: This account does not possess Warden privileges.', 'error');
-    return;
-  }
-
-  if (matchedUser.role === 'student') {
-    if (matchedUser.status === 'pending') {
-      showToast('Account is currently pending Chief Warden approval.', 'error');
-      return;
-    }
-    if (matchedUser.status === 'rejected') {
-      showToast('Registration application was declined by the Warden.', 'error');
-      return;
-    }
-  }
-
-  loginUser(matchedUser);
-};
-
-window.handleStudentRegister = async (e) => {
-  e.preventDefault();
-  const name = document.getElementById('reg-name').value.trim();
-  const rollNo = document.getElementById('reg-roll').value.trim().toUpperCase();
-  const block = document.getElementById('reg-floor').value;
-  const room = document.getElementById('reg-room').value.trim();
-  const phone = document.getElementById('reg-phone').value.trim();
-  const username = document.getElementById('reg-username').value.trim().toLowerCase();
-  const password = document.getElementById('reg-pass').value.trim();
-
-  if (store.users.some(u => u.username.toLowerCase() === username)) {
-    showToast('Username already registered. Please choose another.', 'error');
-    return;
-  }
-  if (store.users.some(u => u.rollNo && u.rollNo.toUpperCase() === rollNo)) {
-    showToast('Roll Number already exists in the system.', 'error');
-    return;
-  }
-
-  const newStudent = {
-    id: 'usr_' + Date.now(),
-    role: 'student',
-    name,
-    rollNo,
-    block,
-    room,
-    phone,
-    username,
-    password,
-    status: 'pending',
-    createdAt: new Date().toISOString()
-  };
-
-  await syncSave('users', newStudent.id, newStudent);
-  lastRegisteredStudent = newStudent;
-  showToast('Registration submitted! Awaiting Chief Warden approval.', 'success');
-  authMode = 'submitted_success';
-  renderApp();
-};
-
-window.appLogout = () => {
-  logoutUser();
-};
 
 function renderWardenNav(nav) {
   const tabs = [
