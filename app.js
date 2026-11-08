@@ -235,6 +235,7 @@ function logoutUser() {
   showToast('Logged out securely.', 'info');
 }
 
+// Main App Renderer (Cloud Button UI se hata diya gaya hai)
 function renderApp() {
   const main = document.getElementById('main-content');
   const nav = document.getElementById('bottom-nav');
@@ -249,63 +250,54 @@ function renderApp() {
 
   const wardenAccountExists = store.users.some(u => u.role === 'warden');
 
+  // 1. Unauthenticated Gateway (Login / Register Screens)
   if (!currentUser) {
     nav.classList.add('hidden');
 
     if (!wardenAccountExists) {
       authMode = 'warden_setup';
       headerSubtitle.innerText = 'Initial Warden Setup';
-      headerActions.innerHTML = `
-        <button onclick="window.openFirebaseSettings()" title="Firebase Config" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200">
-          <i class="ph-bold ph-cloud text-base"></i>
-        </button>
-      `;
+      headerActions.innerHTML = ``; // Cloud button removed
     } else {
       headerSubtitle.innerText = 'Residence Portal Gateway';
       headerActions.innerHTML = `
-        <button onclick="window.openFirebaseSettings()" title="Cloud Settings" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200">
-          <i class="ph-bold ph-cloud text-base"></i>
-        </button>
         <button onclick="window.switchAuth('warden_login')" class="px-2.5 py-1.5 rounded-xl ${authMode === 'warden_login' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} text-xs font-bold flex items-center gap-1 transition">
           <i class="ph-bold ph-shield-check"></i> Warden Portal
         </button>
-      `;
+      `; // Cloud button removed
     }
     renderAuthGateway(main);
     return;
   }
 
+  // 2. Warden Authenticated
   if (currentUser.role === 'warden') {
     nav.classList.remove('hidden');
     headerSubtitle.innerText = `Chief Warden Desk • ${currentUser.name}`;
     headerActions.innerHTML = `
-      <button onclick="window.openFirebaseSettings()" title="Cloud Settings" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200">
-        <i class="ph-bold ph-cloud text-base"></i>
-      </button>
       <button onclick="window.appLogout()" title="Logout" class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition">
         <i class="ph-bold ph-sign-out text-lg"></i>
       </button>
-    `;
+    `; // Cloud button removed
     renderWardenNav(nav);
     renderWardenContent(main);
     return;
   }
 
+  // 3. Student Authenticated
   if (currentUser.role === 'student') {
     nav.classList.remove('hidden');
     headerSubtitle.innerText = `Room ${currentUser.room} • ${currentUser.block}`;
     headerActions.innerHTML = `
-      <button onclick="window.openFirebaseSettings()" title="Cloud Settings" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200">
-        <i class="ph-bold ph-cloud text-base"></i>
-      </button>
       <button onclick="window.appLogout()" title="Logout" class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition">
         <i class="ph-bold ph-sign-out text-lg"></i>
       </button>
-    `;
+    `; // Cloud button removed
     renderStudentNav(nav);
     renderStudentContent(main);
   }
 }
+
 
 function renderAuthGateway(container) {
   const wardenAccountExists = store.users.some(u => u.role === 'warden');
