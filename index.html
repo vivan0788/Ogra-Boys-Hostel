@@ -3,186 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Ogra Boys Hostel</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  <title>Ogra Boys Hostel - Digital Resident & Management Portal</title>
+  
+  <meta name="theme-color" content="#4338ca">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Ogra Hostel">
+  
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons CDN -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Plus Jakarta Sans Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- External Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-[#090d16] text-slate-100 flex flex-col min-h-screen">
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex justify-center selection:bg-brand-500 selection:text-white pb-20 md:pb-6">
 
-  <!-- Splash Screen -->
-  <div id="splash-screen">
-    <div class="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center pulse-emblem mb-4 shadow-lg shadow-blue-500/20">
-      <i class="ph-bold ph-shield-check text-4xl text-white"></i>
+  <!-- App Opening Splash Screen -->
+  <div id="splash-screen" class="fixed inset-0 z-50 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex flex-col items-center justify-center text-white transition-opacity duration-700 ease-out">
+    <div class="flex flex-col items-center text-center px-6">
+      <!-- Ogra Boys Hostel Emblem Logo -->
+      <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-indigo-700 p-0.5 shadow-2xl mb-5 pulse-emblem flex items-center justify-center">
+        <div class="w-full h-full bg-slate-950/80 rounded-3xl backdrop-blur-sm flex items-center justify-center border border-white/20">
+          <svg viewBox="0 0 64 64" fill="none" class="w-14 h-14" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 4L8 14V30C8 44.5 18.2 57.8 32 61C45.8 57.8 56 44.5 56 30V14L32 4Z" fill="url(#splashEmblemGrad)" stroke="#818cf8" stroke-width="2"/>
+            <path d="M22 42V24H42V42" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M18 46H46" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M32 20V26" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M27 33H37" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
+            <defs>
+              <linearGradient id="splashEmblemGrad" x1="8" y1="4" x2="56" y2="61" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#312e81"/>
+                <stop offset="1" stop-color="#1e1b4b"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[11px] font-bold uppercase tracking-wider mb-2">
+        <i class="ph-bold ph-shield-check"></i> Residence Portal
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-white">Ogra Boys Hostel</h1>
+      <p class="text-xs sm:text-sm text-indigo-200/80 mt-1 font-medium">Real-Time Resident & Discipline Management</p>
+
+      <!-- Connection state -->
+      <div id="splash-status" class="mt-8 flex items-center gap-2">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></div>
+        <span class="text-[11px] uppercase tracking-widest text-slate-400 font-bold">Synchronizing Live Database</span>
+      </div>
     </div>
-    <h1 class="text-xl font-bold tracking-tight text-white">OGRA BOYS HOSTEL</h1>
-    <p class="text-xs text-slate-400 mt-1">Management Portal</p>
   </div>
 
-  <!-- Header -->
-  <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-[#090d16]/90 backdrop-blur sticky top-0 z-50">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
-        <i class="ph-bold ph-shield text-xl"></i>
-      </div>
-      <div>
-        <h2 class="text-sm font-bold tracking-wide">OGRA BOYS HOSTEL</h2>
-        <span id="role-tag" class="text-[10px] uppercase font-semibold text-slate-400">Secure Gateway</span>
+  <!-- Mobile App Frame -->
+  <div id="app" class="w-full max-w-lg min-h-screen bg-slate-50 flex flex-col shadow-2xl relative border-x border-slate-200">
+    
+    <!-- Toast Alert Banner -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 transform transition-all duration-300 opacity-0 pointer-events-none scale-95 w-11/12 max-w-md">
+      <div id="toast-inner" class="flex items-center gap-3 p-3.5 rounded-2xl shadow-xl text-white text-sm font-semibold backdrop-blur-md bg-slate-900">
+        <i id="toast-icon" class="ph-bold ph-info text-xl"></i>
+        <span id="toast-msg" class="flex-1">Notification message</span>
       </div>
     </div>
-    <div class="flex items-center gap-2">
-      <button id="logout-btn" class="hidden text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-medium">
-        <i class="ph-bold ph-sign-out"></i> Logout
-      </button>
-    </div>
-  </header>
 
-  <!-- Main Container -->
-  <main class="flex-1 max-w-xl mx-auto w-full p-4 pb-20">
-
-    <!-- Screen 1: Auth Gateway (Student/Warden Login & Registration) -->
-    <div id="auth-screen" class="space-y-6">
-      <div class="flex bg-slate-900/80 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
-        <button onclick="switchAuthTab('student-login')" id="tab-btn-student-login" class="flex-1 py-2 rounded-lg bg-blue-600 text-white transition">Student</button>
-        <button onclick="switchAuthTab('warden-login')" id="tab-btn-warden-login" class="flex-1 py-2 rounded-lg text-slate-400 transition">Warden</button>
-        <button onclick="switchAuthTab('register')" id="tab-btn-register" class="flex-1 py-2 rounded-lg text-slate-400 transition">Register</button>
-      </div>
-
-      <!-- Student Login Form -->
-      <form id="student-login-form" class="glass-card p-6 space-y-4">
-        <h3 class="text-base font-bold text-white mb-2">Student Access</h3>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Roll Number</label>
-          <input type="text" id="stud-roll" required class="form-input" placeholder="e.g. 202601">
+    <!-- App Header -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 flex items-center justify-between shadow-sm">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+          <svg viewBox="0 0 64 64" fill="none" class="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
+            <path d="M32 6L12 15V29C12 41.5 20.6 52.8 32 56C43.4 52.8 52 41.5 52 29V15L32 6Z" fill="#312e81" stroke="#ffffff" stroke-width="2.5"/>
+            <path d="M24 38V24H40V38" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M21 42H43" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
         </div>
         <div>
-          <label class="text-xs text-slate-400 block mb-1">Password</label>
-          <input type="password" id="stud-pass" required class="form-input" placeholder="••••••••">
-        </div>
-        <button type="submit" class="btn-primary">Sign In as Student</button>
-      </form>
-
-      <!-- Warden Login Form -->
-      <form id="warden-login-form" class="glass-card p-6 space-y-4 hidden">
-        <h3 class="text-base font-bold text-white mb-2">Warden Portal</h3>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Username</label>
-          <input type="text" id="warden-user" required class="form-input" placeholder="Username">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Master PIN (Authorization)</label>
-          <input type="password" id="warden-pin" required class="form-input" placeholder="Enter Authorization PIN">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Password</label>
-          <input type="password" id="warden-pass" required class="form-input" placeholder="••••••••">
-        </div>
-        <button type="submit" class="btn-primary bg-amber-600 hover:bg-amber-500">Sign In as Warden</button>
-      </form>
-
-      <!-- Student Registration Form -->
-      <form id="register-form" class="glass-card p-6 space-y-4 hidden">
-        <h3 class="text-base font-bold text-white mb-2">New Student Admission</h3>
-        <p class="text-xs text-slate-400">Account requires Warden verification before activation.</p>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Full Name</label>
-          <input type="text" id="reg-name" required class="form-input" placeholder="Full Name">
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-xs text-slate-400 block mb-1">Roll Number</label>
-            <input type="text" id="reg-roll" required class="form-input" placeholder="Roll No">
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-base font-extrabold text-slate-900 leading-tight">Ogra Boys Hostel</h1>
+            <span id="live-indicator" class="w-2 h-2 rounded-full bg-emerald-500" title="Connected Live"></span>
           </div>
-          <div>
-            <label class="text-xs text-slate-400 block mb-1">Room No</label>
-            <input type="text" id="reg-room" required class="form-input" placeholder="e.g. 104">
-          </div>
+          <p id="header-subtitle" class="text-xs font-semibold text-slate-400">Digital Residence System</p>
         </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Hostel Floor</label>
-          <select id="reg-floor" class="form-input">
-            <option value="Ground-Floor">Ground-Floor</option>
-            <option value="1st-Floor">1st-Floor</option>
-            <option value="2nd-Floor">2nd-Floor</option>
-            <option value="3rd-Floor">3rd-Floor</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Phone Number</label>
-          <input type="tel" id="reg-phone" required class="form-input" placeholder="Phone Number">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">Create Password</label>
-          <input type="password" id="reg-pass" required class="form-input" placeholder="Password">
-        </div>
-        <button type="submit" class="btn-primary">Submit for Approval</button>
-      </form>
-    </div>
-
-    <!-- Screen 2: Student Dashboard -->
-    <div id="student-dashboard" class="space-y-4 hidden">
-      <div class="glass-card p-5 border-blue-500/20 bg-gradient-to-br from-blue-950/40 to-slate-900/60">
-        <h2 id="stud-disp-name" class="text-lg font-bold text-white">Student Name</h2>
-        <p id="stud-disp-meta" class="text-xs text-slate-400">Roll: --- • Room: ---</p>
       </div>
 
-      <!-- Notices Section -->
-      <div class="glass-card p-4 space-y-3">
-        <h3 class="text-xs uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
-          <i class="ph-bold ph-megaphone-simple text-blue-400"></i> Official Notices
-        </h3>
-        <div id="student-notices" class="space-y-2 text-sm"></div>
-      </div>
+      <!-- Header actions -->
+      <div id="header-actions" class="flex items-center gap-2"></div>
+    </header>
 
-      <!-- Complaints Form -->
-      <div class="glass-card p-4 space-y-3">
-        <h3 class="text-xs uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
-          <i class="ph-bold ph-wrench text-amber-400"></i> File a Complaint
-        </h3>
-        <input type="text" id="comp-title" class="form-input text-sm" placeholder="Issue Title (e.g., Fan not working)">
-        <textarea id="comp-desc" class="form-input text-sm h-20 resize-none" placeholder="Provide details..."></textarea>
-        <button onclick="submitComplaint()" class="btn-primary py-2 text-xs">Submit Grievance</button>
-        <div id="student-complaint-list" class="space-y-2 pt-2"></div>
-      </div>
-    </div>
+    <!-- Main Dynamic Screen Content -->
+    <main id="main-content" class="flex-1 p-4 overflow-y-auto">
+      <!-- Dynamic Views Injected Here -->
+    </main>
 
-    <!-- Screen 3: Warden Dashboard -->
-    <div id="warden-dashboard" class="space-y-5 hidden">
-      <!-- Approvals Section -->
-      <div class="glass-card p-4 space-y-3">
-        <h3 class="text-xs uppercase font-bold tracking-wider text-amber-400 flex items-center gap-1.5">
-          <i class="ph-bold ph-user-circle-plus"></i> Pending Approvals
-        </h3>
-        <div id="warden-approvals-list" class="space-y-2"></div>
-      </div>
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav id="bottom-nav" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-white/95 backdrop-blur-md border-t border-slate-200 px-1 py-1.5 z-40 flex justify-around items-center shadow-lg transition-transform duration-300 hidden">
+      <!-- Role Navigation Items Injected Here -->
+    </nav>
+  </div>
 
-      <!-- Post Notice -->
-      <div class="glass-card p-4 space-y-3">
-        <h3 class="text-xs uppercase font-bold tracking-wider text-blue-400 flex items-center gap-1.5">
-          <i class="ph-bold ph-paper-plane-tilt"></i> Broadcast Announcement
-        </h3>
-        <input type="text" id="notice-input" class="form-input text-sm" placeholder="Write urgent hostel announcement...">
-        <button onclick="postNotice()" class="btn-primary py-2 text-xs">Post Announcement</button>
-      </div>
-
-      <!-- Grievance Management -->
-      <div class="glass-card p-4 space-y-3">
-        <h3 class="text-xs uppercase font-bold tracking-wider text-slate-400 flex items-center gap-1.5">
-          <i class="ph-bold ph-list-checks"></i> Student Complaints
-        </h3>
-        <div id="warden-complaint-list" class="space-y-2 text-sm"></div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- Toast Notification Alert -->
-  <div id="toast"></div>
-
-  <!-- JavaScript Modules -->
-  <script type="module" src="firebase-config.js"></script>
+  <!-- Main JavaScript File -->
   <script type="module" src="app.js"></script>
 </body>
-            </html>
-            
+</html>
