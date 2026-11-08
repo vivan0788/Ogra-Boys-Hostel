@@ -470,6 +470,121 @@ function renderAuthGateway(container) {
     </div>
   `;
 }
+window.switchAuth = (mode) => {
+  authMode = mode;
+  renderApp();
+};
+
+window.handleWardenSetup = async (e) => {
+  e.preventDefault();
+  const enteredPin = document.getElementById('w-setup-pin').value.trim();
+
+  if (enteredPin !== SECRET_WARDEN_AUTH_PIN) {
+    showToast('Access Denied: Invalid Master Secret Authorization PIN!', 'error');
+    return;
+  }
+
+  const name = document.getElementById('w-setup-name').value.trim();
+  const phone = document.getElementById('w-setup-phone').value.trim();
+  const username = document.getElementById('w-setup-user').value.trim().toLowerCase();
+  const password = document.getElementById('w-setup-pass').value.trim();
+
+  const wardenObj = {
+    id: 'usr_warden_' + Date.now(),
+    role: 'warden',
+    name,
+    rollNo: 'STAFF-WARDEN',
+    room: 'Warden Office',
+    block: 'Administration',
+    phone,
+    username,
+    password,
+    status: 'approved',
+    createdAt: new Date().toISOString()
+  };
+
+  await syncSave('users', wardenObj.id, wardenObj);
+  showToast('Warden Master account authorized & saved!', 'success');
+  loginUser(wardenObj);
+};
+
+window.handleAuthLogin = (e, expectedRole) => {
+  e.preventDefault();
+  const uVal = document.getElementById('auth-u').value.trim().toLowerCase();
+  const pVal = document.getElementById('auth-p').value.trim();
+
+  const matchedUser = store.users.find(u => 
+    (u.username.toLowerCase() === uVal || u.phone === uVal || (u.rollNo && u.rollNo.toLowerCase() === uVal)) &&
+    u.password === pVal
+  );
+
+  if (!matchedUser) {
+    showToast('Invalid credentials! Please verify username and password.', 'error');
+    return;
+  }
+
+  if (expectedRole === 'warden' && matchedUser.role !== 'warden') {
+    showToast('Access Restricted: This account does not possess Warden privileges.', 'error');
+    return;
+  }
+
+  if (matchedUser.role === 'student') {
+    if (matchedUser.status === 'pending') {
+      showToast('Account is currently pending Chief Warden approval.', 'error');
+      return;
+    }
+    if (matchedUser.status === 'rejected') {
+      showToast('Registration application was declined by the Warden.', 'error');
+      return;
+    }
+  }
+
+  loginUser(matchedUser);
+};
+
+window.handleStudentRegister = async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('reg-name').value.trim();
+  const rollNo = document.getElementById('reg-roll').value.trim().toUpperCase();
+  const block = document.getElementById('reg-floor').value;
+  const room = document.getElementById('reg-room').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
+  const username = document.getElementById('reg-username').value.trim().toLowerCase();
+  const password = document.getElementById('reg-pass').value.trim();
+
+  if (store.users.some(u => u.username.toLowerCase() === username)) {
+    showToast('Username already registered. Please choose another.', 'error');
+    return;
+  }
+  if (store.users.some(u => u.rollNo && u.rollNo.toUpperCase() === rollNo)) {
+    showToast('Roll Number already exists in the system.', 'error');
+    return;
+  }
+
+  const newStudent = {
+    id: 'usr_' + Date.now(),
+    role: 'student',
+    name,
+    rollNo,
+    block,
+    room,
+    phone,
+    username,
+    password,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+
+  await syncSave('users', newStudent.id, newStudent);
+  lastRegisteredStudent = newStudent;
+  showToast('Registration submitted! Awaiting Chief Warden approval.', 'success');
+  authMode = 'submitted_success';
+  renderApp();
+};
+
+window.appLogout = () => {
+  logoutUser();
+};
 
         
 
