@@ -1069,7 +1069,27 @@ function renderWardenAdminSuite(container) {
           </div>
         `).join('')}
       </div>
+        <!-- Resident Students Directory (Contact & Info) -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Hostel Resident Directory</h3>
+            <p class="text-[11px] text-slate-400">Approved students contact & room records</p>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-brand-700">
+            ${students.filter(s => s.status === 'approved').length} Active Residents
+          </span>
+        </div>
 
+        <!-- Search Bar -->
+        <input type="text" id="dir-search-input" oninput="window.filterResidentDirectory(this.value)" placeholder="Search by name, roll no, or room..." class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+
+        <!-- Directory List Container -->
+        <div id="directory-list-container" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+          ${window.getResidentDirectoryHTML(students.filter(s => s.status === 'approved'))}
+        </div>
+      </div>
+      
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
         <div>
           <h4 class="font-bold text-slate-900 text-sm">Hostel Mess Menu</h4>
@@ -1757,4 +1777,49 @@ window.addEventListener('load', async () => {
       setTimeout(() => splash.remove(), 700);
     }
   }, 1500);
+  // Function to generate Resident Directory Cards with direct Call & Info
+window.getResidentDirectoryHTML = (approvedStudents) => {
+  if (!approvedStudents || approvedStudents.length === 0) {
+    return `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">No active residents registered yet.</div>`;
+  }
+
+  return approvedStudents.map(s => `
+    <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3 text-xs">
+      <div>
+        <div class="font-extrabold text-slate-900">${s.name}</div>
+        <div class="text-[11px] text-slate-500 font-medium mt-0.5">
+          Roll: <strong class="text-slate-700">${s.rollNo}</strong> • Room: <strong class="text-slate-700">${s.room}</strong> (${s.block})
+        </div>
+        <div class="text-[10px] text-slate-400 mt-0.5">
+          User: @${s.username} • Joined: ${new Date(s.createdAt).toLocaleDateString()}
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <a href="tel:${s.phone}" title="Call Resident" class="p-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold flex items-center gap-1 hover:bg-emerald-100 transition">
+          <i class="ph-bold ph-phone-call text-sm"></i>
+          <span class="hidden sm:inline text-[11px]">${s.phone}</span>
+        </a>
+      </div>
+    </div>
+  `).join('');
+};
+
+// Real-time search filter for Warden Directory
+window.filterResidentDirectory = (query) => {
+  const q = query.trim().toLowerCase();
+  const approved = store.users.filter(u => u.role === 'student' && u.status === 'approved');
+  const filtered = approved.filter(s => 
+    s.name.toLowerCase().includes(q) || 
+    (s.rollNo && s.rollNo.toLowerCase().includes(q)) || 
+    (s.room && s.room.toString().includes(q)) ||
+    (s.phone && s.phone.includes(q))
+  );
+
+  const container = document.getElementById('directory-list-container');
+  if (container) {
+    container.innerHTML = window.getResidentDirectoryHTML(filtered);
+  }
+};
+  
 });
