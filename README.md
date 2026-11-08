@@ -36,7 +36,7 @@ Real-time digital residence, attendance, and discipline management portal built 
 ## 📁 Project Structure
 
 ```text
-├── index.html       # Application markup and responsive shell[span_18](start_span)[span_18](end_span)
-├── style.css        # Custom CSS animations and utility styles[span_19](start_span)[span_19](end_span)
-├── app.js           # Full client-side application logic & Firebase integration[span_20](start_span)[span_20](end_span)
+├── index.html       # Application markup and responsive shell
+├── style.css        # Custom CSS animations and utility styles
+├── app.js           # Full client-side application logic & Firebase integration
 └── README.md        # Project documentation
