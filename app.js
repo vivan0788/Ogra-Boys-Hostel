@@ -12,22 +12,27 @@ import {
   signInAnonymously 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-// App state keys
-const KEY_FIREBASE_CFG = 'ogra_custom_fb_cfg_v1';
-const KEY_SESSION_USER = 'ogra_session_user_v1';
-const KEY_LOCAL_BACKUP = 'ogra_local_cache_v1';
+// ==========================================
+// 1. CENTRAL FIREBASE CLOUD CONFIG
+// ==========================================
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
 
-// The Master Warden Secret PIN (Kept strictly private in code - NEVER printed or shown in the UI)
+const KEY_SESSION_USER = 'ogra_session_user_v1';
 const SECRET_WARDEN_AUTH_PIN = "OGRA@1234";
 
-// Application state
 let currentUser = JSON.parse(sessionStorage.getItem(KEY_SESSION_USER)) || null;
 let currentTab = 'dashboard';
-let authMode = 'student_login'; // 'student_login', 'warden_login', 'register', 'submitted_success', 'warden_setup'
+let authMode = 'student_login';
 let lastRegisteredStudent = null;
 let selectedAttendanceDate = new Date().toISOString().split('T')[0];
 
-// Real-time Hostel In-Memory Store synced via Firebase Firestore
 let store = {
   users: [],
   attendance: [],
@@ -45,7 +50,6 @@ let store = {
   }
 };
 
-// Emergency Directory
 const EMERGENCY_CONTACTS = [
   { role: 'Chief Warden Office', name: 'Warden Desk', phone: '+91 98765 43210', icon: 'ph-shield-check' },
   { role: 'Hostel Main Gate', name: 'Security Guard', phone: '+91 98111 22334', icon: 'ph-shield' },
@@ -54,80 +58,43 @@ const EMERGENCY_CONTACTS = [
   { role: 'Hostel Plumber', name: 'Sanitation Service', phone: '+91 98333 44556', icon: 'ph-wrench' }
 ];
 
-// Firebase Initialization & Sync Controller
 let fbApp = null;
 let fbDb = null;
 let fbAuth = null;
 let isLiveFirebase = false;
 
-// Default or Custom Firebase Config
-function getFirebaseConfig() {
-  const custom = localStorage.getItem(KEY_FIREBASE_CFG);
-  if (custom) {
-    try { return JSON.parse(custom); } catch(e) {}
-  }
-  if (typeof __firebase_config !== 'undefined') {
-    try { return JSON.parse(__firebase_config); } catch(e) {}
-  }
-  return null;
-}
-
 async function initCloudSync() {
-  const cfg = getFirebaseConfig();
   const statusEl = document.getElementById('splash-status');
 
-  if (cfg && cfg.apiKey && cfg.projectId) {
-    try {
-      fbApp = initializeApp(cfg);
-      fbDb = getFirestore(fbApp);
-      fbAuth = getAuth(fbApp);
-      
-      await signInAnonymously(fbAuth);
-      isLiveFirebase = true;
-      if (statusEl) statusEl.innerHTML = '<span class="text-emerald-400 font-bold">Connected to Firebase Real-time Cloud!</span>';
-      setupRealtimeListeners();
-      return;
-    } catch (err) {
-      console.warn('Firebase init error, using local fallback:', err);
+  try {
+    fbApp = initializeApp(FIREBASE_CONFIG);
+    fbDb = getFirestore(fbApp);
+    fbAuth = getAuth(fbApp);
+
+    await signInAnonymously(fbAuth);
+    isLiveFirebase = true;
+
+    if (statusEl) {
+      statusEl.innerHTML = '<span class="text-emerald-400 font-bold">Connected to Central Hostel Cloud!</span>';
+    }
+
+    setupRealtimeListeners();
+  } catch (err) {
+    console.error('Firebase cloud init error:', err);
+    if (statusEl) {
+      statusEl.innerHTML = '<span class="text-rose-400 font-bold">Cloud Connection Failed. Check Network!</span>';
     }
   }
-
-  loadLocalCache();
-  if (statusEl) statusEl.innerHTML = '<span class="text-amber-400 font-bold">Running with Local Storage Engine</span>';
-}
-
-function loadLocalCache() {
-  const cached = localStorage.getItem(KEY_LOCAL_BACKUP);
-  if (cached) {
-    try {
-      store = { ...store, ...JSON.parse(cached) };
-    } catch(e) {}
-  }
-  if (store.notices.length === 0) {
-    store.notices = [{
-      id: 'not_default',
-      title: 'Welcome to Ogra Boys Hostel',
-      category: 'General',
-      description: 'Official digital residence management is now active. All students must register and maintain gate passes.',
-      author: 'Chief Warden Office',
-      date: 'Official Notice'
-    }];
-  }
-}
-
-function persistLocalCache() {
-  localStorage.setItem(KEY_LOCAL_BACKUP, JSON.stringify(store));
 }
 
 function setupRealtimeListeners() {
   if (!fbDb) return;
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'ogra-hostel-hub';
 
   const syncCollections = ['users', 'attendance', 'outpasses', 'complaints', 'notices', 'mess'];
-  
+
   syncCollections.forEach(colName => {
     try {
-      const colRef = collection(fbDb, 'artifacts', appId, 'public', 'data', colName);
+      const colRef = collection(fbDb, colName);
       onSnapshot(colRef, (snapshot) => {
         const list = [];
         snapshot.forEach(docSnap => {
@@ -150,7 +117,6 @@ function setupRealtimeListeners() {
           }
         }
 
-        persistLocalCache();
         renderApp();
       }, (err) => {
         console.error(`Error syncing ${colName}:`, err);
@@ -162,33 +128,15 @@ function setupRealtimeListeners() {
 }
 
 async function syncSave(collectionName, documentId, data) {
-  if (isLiveFirebase && fbDb) {
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'ogra-hostel-hub';
+  if (fbDb) {
     try {
-      const docRef = doc(fbDb, 'artifacts', appId, 'public', 'data', collectionName, documentId);
+      const docRef = doc(fbDb, collectionName, documentId);
       await setDoc(docRef, data, { merge: true });
     } catch (err) {
-      console.error('Firebase save failed, saving locally:', err);
-      fallbackLocalSave(collectionName, documentId, data);
-    }
-  } else {
-    fallbackLocalSave(collectionName, documentId, data);
-  }
-}
-
-function fallbackLocalSave(col, docId, data) {
-  if (col === 'mess') {
-    store.mess = data.menu || store.mess;
-  } else {
-    const idx = store[col].findIndex(item => item.id === docId);
-    if (idx !== -1) {
-      store[col][idx] = { ...store[col][idx], ...data };
-    } else {
-      store[col].unshift({ id: docId, ...data });
+      console.error('Firebase save failed:', err);
+      showToast('Error saving data to cloud!', 'error');
     }
   }
-  persistLocalCache();
-  renderApp();
 }
 
 function showToast(message, type = 'success') {
@@ -235,7 +183,6 @@ function logoutUser() {
   showToast('Logged out securely.', 'info');
 }
 
-// Main App Renderer (Cloud Button UI se hata diya gaya hai)
 function renderApp() {
   const main = document.getElementById('main-content');
   const nav = document.getElementById('bottom-nav');
@@ -245,32 +192,30 @@ function renderApp() {
 
   if (liveInd) {
     liveInd.className = `w-2 h-2 rounded-full ${isLiveFirebase ? 'bg-emerald-500 ring-2 ring-emerald-300' : 'bg-amber-500'}`;
-    liveInd.title = isLiveFirebase ? 'Firebase Realtime Cloud Active' : 'Local Storage Mode';
+    liveInd.title = isLiveFirebase ? 'Hostel Cloud Synchronized' : 'Connecting to Cloud...';
   }
 
   const wardenAccountExists = store.users.some(u => u.role === 'warden');
 
-  // 1. Unauthenticated Gateway (Login / Register Screens)
   if (!currentUser) {
     nav.classList.add('hidden');
 
     if (!wardenAccountExists) {
       authMode = 'warden_setup';
       headerSubtitle.innerText = 'Initial Warden Setup';
-      headerActions.innerHTML = ``; // Cloud button removed
+      headerActions.innerHTML = ``;
     } else {
       headerSubtitle.innerText = 'Residence Portal Gateway';
       headerActions.innerHTML = `
         <button onclick="window.switchAuth('warden_login')" class="px-2.5 py-1.5 rounded-xl ${authMode === 'warden_login' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'} text-xs font-bold flex items-center gap-1 transition">
           <i class="ph-bold ph-shield-check"></i> Warden Portal
         </button>
-      `; // Cloud button removed
+      `;
     }
     renderAuthGateway(main);
     return;
   }
 
-  // 2. Warden Authenticated
   if (currentUser.role === 'warden') {
     nav.classList.remove('hidden');
     headerSubtitle.innerText = `Chief Warden Desk • ${currentUser.name}`;
@@ -278,13 +223,12 @@ function renderApp() {
       <button onclick="window.appLogout()" title="Logout" class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition">
         <i class="ph-bold ph-sign-out text-lg"></i>
       </button>
-    `; // Cloud button removed
+    `;
     renderWardenNav(nav);
     renderWardenContent(main);
     return;
   }
 
-  // 3. Student Authenticated
   if (currentUser.role === 'student') {
     nav.classList.remove('hidden');
     headerSubtitle.innerText = `Room ${currentUser.room} • ${currentUser.block}`;
@@ -292,12 +236,11 @@ function renderApp() {
       <button onclick="window.appLogout()" title="Logout" class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition">
         <i class="ph-bold ph-sign-out text-lg"></i>
       </button>
-    `; // Cloud button removed
+    `;
     renderStudentNav(nav);
     renderStudentContent(main);
   }
 }
-
 
 function renderAuthGateway(container) {
   const wardenAccountExists = store.users.some(u => u.role === 'warden');
@@ -309,7 +252,7 @@ function renderAuthGateway(container) {
           <span class="inline-block px-3 py-1 bg-amber-400 text-slate-900 rounded-full text-[11px] font-black uppercase tracking-wider mb-2">Initial Setup</span>
           <h2 class="text-2xl font-black">Register Chief Warden</h2>
           <p class="text-xs text-brand-100 mt-1 leading-relaxed">
-            Configure the master Chief Warden account for Ogra Boys Hostel to manage student approvals, daily attendance, and hostel administration across devices.
+            Configure the master Chief Warden account for Ogra Boys Hostel to manage student approvals, daily attendance, and hostel administration.
           </p>
         </div>
 
@@ -525,6 +468,7 @@ function renderAuthGateway(container) {
     </div>
   `;
 }
+
 window.switchAuth = (mode) => {
   authMode = mode;
   renderApp();
@@ -669,7 +613,7 @@ function renderWardenNav(nav) {
       </button>
     `;
   }).join('');
-    }
+}
 window.switchTab = (tabId) => {
   currentTab = tabId;
   renderApp();
@@ -835,7 +779,7 @@ function renderWardenAttendance(container) {
             <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
               <div>
                 <div class="font-bold text-slate-900 text-sm">${s.name}</div>
-                <div class="text-[11px] text-slate-500 font-medium">Room ${s.room} • ${s.block} (${s.rollNo})</div>
+                <div class="text-[11px] text-slate-500 font-medium enlargement-target">Room ${s.room} • ${s.block} (${s.rollNo})</div>
               </div>
 
               <div class="flex items-center gap-1">
@@ -850,6 +794,7 @@ function renderWardenAttendance(container) {
     </div>
   `;
 }
+
 window.setAttendanceDate = (dt) => {
   selectedAttendanceDate = dt;
   renderApp();
@@ -973,7 +918,7 @@ function renderWardenComplaints(container) {
                   c.priority === 'High' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
                 }">${c.category} • ${c.priority} Priority</span>
 
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
                   c.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' :
                   c.status === 'in_progress' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'
                 }">${c.status.replace('_', ' ')}</span>
@@ -1010,9 +955,8 @@ function renderWardenComplaints(container) {
       `}
     </div>
   `;
-}
-
-window.setComplaintState = async (id, st) => {
+  }
+    window.setComplaintState = async (id, st) => {
   const c = store.complaints.find(item => item.id === id);
   if (c) {
     await syncSave('complaints', id, { ...c, status: st });
@@ -1030,6 +974,9 @@ window.saveRemark = async (id) => {
   }
 };
 
+// ==========================================
+// 4. WARDEN ADMIN SUITE (With Student Directory)
+// ==========================================
 function renderWardenAdminSuite(container) {
   const students = store.users.filter(u => u.role === 'student');
   const pendingStudents = students.filter(s => s.status === 'pending');
@@ -1041,6 +988,7 @@ function renderWardenAdminSuite(container) {
         <p class="text-xs text-slate-400">Student admissions, notices & mess menu settings</p>
       </div>
 
+      <!-- Pending Student Approvals -->
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         <div class="flex justify-between items-center">
           <h3 class="text-xs font-bold text-slate-600 uppercase">Student Admission Requests</h3>
@@ -1069,7 +1017,8 @@ function renderWardenAdminSuite(container) {
           </div>
         `).join('')}
       </div>
-        <!-- Resident Students Directory (Contact & Info) -->
+
+      <!-- Resident Students Directory (Contact & Info) -->
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         <div class="flex justify-between items-center">
           <div>
@@ -1081,15 +1030,14 @@ function renderWardenAdminSuite(container) {
           </span>
         </div>
 
-        <!-- Search Bar -->
         <input type="text" id="dir-search-input" oninput="window.filterResidentDirectory(this.value)" placeholder="Search by name, roll no, or room..." class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
 
-        <!-- Directory List Container -->
         <div id="directory-list-container" class="space-y-2 max-h-72 overflow-y-auto pr-1">
           ${window.getResidentDirectoryHTML(students.filter(s => s.status === 'approved'))}
         </div>
       </div>
-      
+
+      <!-- Mess Menu Editor -->
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
         <div>
           <h4 class="font-bold text-slate-900 text-sm">Hostel Mess Menu</h4>
@@ -1100,16 +1048,7 @@ function renderWardenAdminSuite(container) {
         </button>
       </div>
 
-      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
-        <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-          <i class="ph-bold ph-cloud text-brand-600"></i> Cross-Device Live Sync
-        </h4>
-        <p class="text-xs text-slate-500">Connect your Firebase database so notices, attendance, and student approvals synchronize live across phones without manual backups.</p>
-        <button onclick="window.openFirebaseSettings()" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
-          Open Cloud Sync Settings
-        </button>
-      </div>
-
+      <!-- Emergency Helpline Preview -->
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
         <h3 class="text-xs font-bold text-slate-600 uppercase">Emergency Helpline</h3>
         <div class="space-y-1.5">
@@ -1124,6 +1063,7 @@ function renderWardenAdminSuite(container) {
     </div>
   `;
 }
+
 window.approveStudentStatus = async (id, st) => {
   const student = store.users.find(u => u.id === id);
   if (student) {
@@ -1132,6 +1072,52 @@ window.approveStudentStatus = async (id, st) => {
   }
 };
 
+window.getResidentDirectoryHTML = (approvedStudents) => {
+  if (!approvedStudents || approvedStudents.length === 0) {
+    return `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">No active residents registered yet.</div>`;
+  }
+
+  return approvedStudents.map(s => `
+    <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3 text-xs">
+      <div>
+        <div class="font-extrabold text-slate-900">${s.name}</div>
+        <div class="text-[11px] text-slate-500 font-medium enlargement-target">
+          Roll: <strong class="text-slate-700">${s.rollNo}</strong> • Room: <strong class="text-slate-700">${s.room}</strong> (${s.block})
+        </div>
+        <div class="text-[10px] text-slate-400 mt-0.5">
+          User: @${s.username} • Joined: ${new Date(s.createdAt).toLocaleDateString()}
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <a href="tel:${s.phone}" title="Call Resident" class="p-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold flex items-center gap-1 hover:bg-emerald-100 transition">
+          <i class="ph-bold ph-phone-call text-sm"></i>
+          <span class="hidden sm:inline text-[11px]">${s.phone}</span>
+        </a>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.filterResidentDirectory = (query) => {
+  const q = query.trim().toLowerCase();
+  const approved = store.users.filter(u => u.role === 'student' && u.status === 'approved');
+  const filtered = approved.filter(s => 
+    s.name.toLowerCase().includes(q) || 
+    (s.rollNo && s.rollNo.toLowerCase().includes(q)) || 
+    (s.room && s.room.toString().includes(q)) ||
+    (s.phone && s.phone.includes(q))
+  );
+
+  const container = document.getElementById('directory-list-container');
+  if (container) {
+    container.innerHTML = window.getResidentDirectoryHTML(filtered);
+  }
+};
+
+// ==========================================
+// 5. STUDENT PORTAL LOGIC
+// ==========================================
 function renderStudentNav(nav) {
   const tabs = [
     { id: 'student_dash', label: 'Home', icon: 'ph-house' },
@@ -1341,7 +1327,7 @@ function renderStudentOutpass(container) {
         </form>
       </div>
 
-      <div class="space-y-3">
+       <div class="space-y-3">
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Gate Pass History</h3>
         ${myOutpasses.length === 0 ? `
           <div class="p-6 bg-white border border-slate-200 rounded-2xl text-center text-xs text-slate-400">No gate passes submitted yet.</div>
@@ -1362,7 +1348,7 @@ function renderStudentOutpass(container) {
             <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs space-y-1">
               <div><strong class="text-slate-700">Departure:</strong> ${op.leaveTime.replace('T', ' ')}</div>
               <div><strong class="text-slate-700">Return:</strong> ${op.returnTime.replace('T', ' ')}</div>
-              <div><strong class="text-slate-700">Reason:</strong> ${op.reason}</div>
+              <div><strong class="text-slate-700">Reason:</strong> "${op.reason}"</div>
             </div>
 
             ${op.status === 'Approved' ? `
@@ -1490,6 +1476,7 @@ function renderStudentComplaints(container) {
     </div>
   `;
 }
+
 window.handleStudentComplaintSubmit = async (e) => {
   e.preventDefault();
   const category = document.getElementById('sc-cat').value;
@@ -1579,8 +1566,7 @@ function renderStudentMess(container) {
       </div>
     </div>
   `;
-}
-
+}       
 window.openNoticeModal = () => {
   const modal = document.createElement('div');
   modal.id = 'notice-modal';
@@ -1687,85 +1673,6 @@ window.handleMessSave = async (e) => {
   showToast('Mess menu updated!', 'success');
 };
 
-window.openFirebaseSettings = () => {
-  const currentConfig = getFirebaseConfig();
-  const modal = document.createElement('div');
-  modal.id = 'fb-config-modal';
-  modal.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-  modal.innerHTML = `
-    <div class="bg-white rounded-3xl p-5 w-full max-w-md shadow-2xl space-y-3.5 max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center">
-        <div>
-          <h3 class="font-extrabold text-slate-900 text-base flex items-center gap-1.5">
-            <i class="ph-bold ph-cloud text-brand-600 text-lg"></i> Firebase Cloud Sync
-          </h3>
-          <p class="text-[11px] text-slate-400">Enables live updates across different phones</p>
-        </div>
-        <button onclick="document.getElementById('fb-config-modal').remove()" class="text-slate-400 hover:text-slate-600"><i class="ph-bold ph-x text-lg"></i></button>
-      </div>
-
-      <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-600 space-y-1">
-        <p><strong>Status:</strong> ${isLiveFirebase ? '<span class="text-emerald-600 font-bold">● Active & Synchronizing Live</span>' : '<span class="text-amber-600 font-bold">● Local Storage Mode (Single Device)</span>'}</p>
-        <p class="text-[11px] text-slate-500">To sync phones across the internet, paste your free Firebase web configuration below from your Firebase Console.</p>
-      </div>
-
-      <form onsubmit="window.saveFirebaseConfig(event)" class="space-y-2.5 text-xs">
-        <div>
-          <label class="block font-bold text-slate-600 mb-0.5">apiKey</label>
-          <input type="text" id="fb-apiKey" value="${currentConfig?.apiKey || ''}" placeholder="AIzaSy..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
-        </div>
-        <div>
-          <label class="block font-bold text-slate-600 mb-0.5">projectId</label>
-          <input type="text" id="fb-projectId" value="${currentConfig?.projectId || ''}" placeholder="ogra-hostel-xxxx" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
-        </div>
-        <div>
-          <label class="block font-bold text-slate-600 mb-0.5">authDomain</label>
-          <input type="text" id="fb-authDomain" value="${currentConfig?.authDomain || ''}" placeholder="ogra-hostel-xxxx.firebaseapp.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
-        </div>
-        <div>
-          <label class="block font-bold text-slate-600 mb-0.5">appId</label>
-          <input type="text" id="fb-appId" value="${currentConfig?.appId || ''}" placeholder="1:xxxx:web:xxxx" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl" />
-        </div>
-
-        <div class="pt-2 flex gap-2">
-          <button type="submit" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold">
-            Save & Connect
-          </button>
-          <button type="button" onclick="window.clearFirebaseConfig()" class="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold">
-            Reset
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
-  document.body.appendChild(modal);
-};
-
-window.saveFirebaseConfig = (e) => {
-  e.preventDefault();
-  const apiKey = document.getElementById('fb-apiKey').value.trim();
-  const projectId = document.getElementById('fb-projectId').value.trim();
-  const authDomain = document.getElementById('fb-authDomain').value.trim();
-  const appId = document.getElementById('fb-appId').value.trim();
-
-  if (!apiKey || !projectId) {
-    showToast('Please provide at least apiKey and projectId.', 'error');
-    return;
-  }
-
-  const cfg = { apiKey, projectId, authDomain, appId };
-  localStorage.setItem(KEY_FIREBASE_CFG, JSON.stringify(cfg));
-  showToast('Firebase configuration saved! Reloading live sync...', 'success');
-  setTimeout(() => { location.reload(); }, 1200);
-};
-
-window.clearFirebaseConfig = () => {
-  localStorage.removeItem(KEY_FIREBASE_CFG);
-  showToast('Configuration cleared. Reverting to local mode.', 'info');
-  setTimeout(() => { location.reload(); }, 1000);
-};
-
-// Launch Application
 window.addEventListener('load', async () => {
   await initCloudSync();
   renderApp();
@@ -1777,49 +1684,4 @@ window.addEventListener('load', async () => {
       setTimeout(() => splash.remove(), 700);
     }
   }, 1500);
-  // Function to generate Resident Directory Cards with direct Call & Info
-window.getResidentDirectoryHTML = (approvedStudents) => {
-  if (!approvedStudents || approvedStudents.length === 0) {
-    return `<div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">No active residents registered yet.</div>`;
-  }
-
-  return approvedStudents.map(s => `
-    <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3 text-xs">
-      <div>
-        <div class="font-extrabold text-slate-900">${s.name}</div>
-        <div class="text-[11px] text-slate-500 font-medium mt-0.5">
-          Roll: <strong class="text-slate-700">${s.rollNo}</strong> • Room: <strong class="text-slate-700">${s.room}</strong> (${s.block})
-        </div>
-        <div class="text-[10px] text-slate-400 mt-0.5">
-          User: @${s.username} • Joined: ${new Date(s.createdAt).toLocaleDateString()}
-        </div>
-      </div>
-
-      <div class="flex items-center gap-1.5 flex-shrink-0">
-        <a href="tel:${s.phone}" title="Call Resident" class="p-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold flex items-center gap-1 hover:bg-emerald-100 transition">
-          <i class="ph-bold ph-phone-call text-sm"></i>
-          <span class="hidden sm:inline text-[11px]">${s.phone}</span>
-        </a>
-      </div>
-    </div>
-  `).join('');
-};
-
-// Real-time search filter for Warden Directory
-window.filterResidentDirectory = (query) => {
-  const q = query.trim().toLowerCase();
-  const approved = store.users.filter(u => u.role === 'student' && u.status === 'approved');
-  const filtered = approved.filter(s => 
-    s.name.toLowerCase().includes(q) || 
-    (s.rollNo && s.rollNo.toLowerCase().includes(q)) || 
-    (s.room && s.room.toString().includes(q)) ||
-    (s.phone && s.phone.includes(q))
-  );
-
-  const container = document.getElementById('directory-list-container');
-  if (container) {
-    container.innerHTML = window.getResidentDirectoryHTML(filtered);
-  }
-};
-  
 });
