@@ -1,20 +1,25 @@
 {
   "name": "Ogra Boys Hostel",
-  "short_name": "HostelHub",
+  "short_name": "OgraHostel",
+  "description": "Digital Resident, Gate Pass and Attendance Management Portal for Ogra Boys Hostel",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#090d16",
-  "theme_color": "#090d16",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#4338ca",
   "icons": [
     {
-      "src": "https://api.iconify.design/solar:shield-bold.svg?color=%233b82f6",
+      "src": "https://cdn-icons-png.flaticon.com/512/2942/2942813.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://api.iconify.design/solar:shield-bold.svg?color=%233b82f6",
+      "src": "https://cdn-icons-png.flaticon.com/512/2942/2942813.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
