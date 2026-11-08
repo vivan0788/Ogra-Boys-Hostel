@@ -16,12 +16,12 @@ import {
 // 1. CENTRAL FIREBASE CLOUD CONFIG
 // ==========================================
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyD9eIrpvN5FzKdMohptOADAONphVBXaKQc",
+  authDomain: "ogra-boys-hostel-430f3.firebaseapp.com",
+  projectId: "ogra-boys-hostel-430f3",
+  storageBucket: "ogra-boys-hostel-430f3.firebasestorage.app",
+  messagingSenderId: "764799235258",
+  appId: "1:764799235258:web:c9cbc8949f3976b5383e83"
 };
 
 const KEY_SESSION_USER = 'ogra_session_user_v1';
